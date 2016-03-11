@@ -10,21 +10,27 @@ forwarders := $(wildcard forwarder-*)
 
 all: $(forwarders)
 
-ifeq ($(BUILD),static)
+ifeq ($(BUILD),prod)
 $(forwarders):
 	@echo "Building static $(NAME)-$@..."
 	ROOTPATH=$(shell pwd -P); mkdir -p $$ROOTPATH/bin; \
 	GO15VENDOREXPERIMENT=1 \
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+	GOOS=linux GOARCH=amd64 \
+	CGO_ENABLED=1 CGO_CPPFLAGS="-I $$ROOTPATH/core"  \
 	go build \
-		-a -tags netgo -installsuffix cgo -ldflags '-extld ld -extldflags -static' -a -x \
+		-a -x -tags netgo -installsuffix cgo -installsuffix netgo \
 		-o $$ROOTPATH/bin/$(NAME)-$@-linux-amd64 \
 		./$@
 else
 $(forwarders):
 	@echo "Building $(NAME)-$@..."
 	ROOTPATH=$(shell pwd -P); mkdir -p $$ROOTPATH/bin; \
-	GO15VENDOREXPERIMENT=1 go build -o $$ROOTPATH/bin/$(NAME)-$@ ./$@
+	GO15VENDOREXPERIMENT=1 \
+	CGO_ENABLED=1 CGO_CPPFLAGS="-I $$ROOTPATH/core"  \
+	go build \
+		-x \
+		-o $$ROOTPATH/bin/$(NAME)-$@ \
+		./$@
 endif
 
 test:

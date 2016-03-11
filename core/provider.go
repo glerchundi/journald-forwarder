@@ -1,6 +1,10 @@
 package core
 
+type ProviderConfig interface {
+	Name() string
+	BulkSize() int
+}
+
 type Provider interface {
-	GetBulkSize() int
 	Publish(JournalEntryIterator) (int, error)
 }

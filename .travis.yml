@@ -1,25 +1,27 @@
-language: go
-go:
-  - 1.5
-  - 1.6
-  - tip
+sudo: required
+services:
+  - docker
 script:
-  - apt-get update
-  - apt-get install -y libsystemd-dev
-  - make BUILD=static
+  - bash -e "${TRAVIS_BUILD_DIR}/.travis.yml.script"
 # Travis CI fails to deploy to GiHub : mime-types-data requires Ruby version >= 2.0
 # http://stackoverflow.com/questions/33855550/travis-ci-fails-to-deploy-to-gihub-mime-types-data-requires-ruby-version-2
 before_deploy:
   - gem install mime-types -v 2.6.2
 deploy:
-  provider: releases
-  skip_cleanup: true
-  api_key:
+  - provider: releases
+    skip_cleanup: true
+    api_key:
       secure: "KBNdmbm24bqQoRScUCnqJaY5RdAhSiyD9CoCj4YCqeld6nylqt2VtRt459LGxsYOhBoGFcGG9xHHNULx6qgRne4h6mh9cma3bj87slOsfbhF4rkIv/yyFo6fIWUN7Hp+Fr5pe/6SLjqpppxCxRge6zTIM/f3yBYue90bxX0rcW9aKPMFp7pEkLYxC6RTTVL5D9fPIk1oZAbUhWF3Xxix1cIHBK+hLFvN1wzdxXL8EUYK5oLqRQ1w0Q/gaNzjKqsZJ5WSxLRzSYz33gDXXX/KUUiqELL5szwLMrHCzh/RgbdOf8KphWe4S0MWSq3YeSq5FQ5jiGh4R1uOEKpPX+US4eIhzYfSSLVxLHgLH7gnFOWBbxXECmupxX6/EaRgGwNz0lrs+I1MSKpAnh+248R+fbVmQGIWWrsGIgTLvINyj8PP8lP+IDphz0c59Zxdfqn/n/U4xiSykL4Nm2Tg3Cu1+2wpAxEbKzbmCqdLUaHr/7MlVUWO7af/3is69yI8Tb79yZjz3XQbb2oFCY+LnXChlckNuHqOgqidH4RngxAyMIc0BUwm7FLMv53YjQeoEf/nLuozKlmNOGps8i9eBvP/C552PM4Agpz/8bxxSmtOTXpCVA56ziNrAdmA3nNp5bXVOvWTGPNyEKXUE6BSQP8v6dOke+zezvLPKlFf+hTKinc="
-  file: ${TRAVIS_BUILD_DIR}/bin/journald-forwarder-*
-  file_glob: true
-  on:
-    repo: glerchundi/journald-forwarder
-    branch: master
-    tags: true
-    go: 1.6
+    file: ${TRAVIS_BUILD_DIR}/bin/journald-forwarder-*
+    file_glob: true
+    on:
+      repo: glerchundi/journald-forwarder
+      branch: master
+      tags: true
+  - provider: script
+    skip_cleanup: true
+    script: bash -e "${TRAVIS_BUILD_DIR}/.travis.yml.deploy"
+    on:
+      repo: glerchundi/journald-forwarder
+      branch: master
+      tags: true

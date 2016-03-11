@@ -1,13 +1,9 @@
 package core
 
 import (
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/glerchundi/go-systemd/sdjournal"
@@ -15,78 +11,84 @@ import (
 )
 
 type ForwarderConfig struct {
-	Provider Provider
-	CursorPath string
+	RingSize     int
+	Path         string
+	ForwardFlush time.Duration
+	CursorPath   string
+	CursorFlush  time.Duration
+}
+
+func NewForwarderConfig(ringSize int) ForwarderConfig {
+	return ForwarderConfig{
+		RingSize:     ringSize,
+		Path:         "/var/log/journal",
+		ForwardFlush: 5 * time.Second,
+		CursorPath:   "/var/run/journald-forwarder/cursor",
+		CursorFlush:  1 * time.Second,
+	}
 }
 
 type Forwarder struct {
-	jf *JournalFollower
-	p Provider
-	publishAtLeastFreq time.Duration
+	follower     *JournalFollower
+	forwardFlush time.Duration
 
-	ring *ring.Ring
+	ring         *ring.Ring
 
-	cursorc chan string
-	cursorPath string
-	cursorFlushFreq time.Duration
+	cursorc      chan string
+	cursorPath   string
+	cursorFlush  time.Duration
 
-	recvc chan *sdjournal.JournalEntry
-	stopc <-chan time.Time
-	donec chan bool
-	errc chan error
+	recvc        chan *sdjournal.JournalEntry
+	stopc        chan time.Time
+	donec        chan bool
+	errc         chan error
 }
 
 func NewForwarder(config ForwarderConfig) (*Forwarder, error) {
-	if config.Provider == nil {
-		return nil, fmt.Errorf("provide a forwarding publisher")
-	}
-
-	cursorPath := "./cursor"
-	if config.CursorPath != "" {
-		cursorPath = config.CursorPath
-	}
-
+	// Create cursor file
 	cursor := ""
-	if _, err := os.Stat(cursorPath); !os.IsNotExist(err) {
-		data, err := ioutil.ReadFile(cursorPath)
+	if _, err := os.Stat(config.CursorPath); !os.IsNotExist(err) {
+		data, err := ioutil.ReadFile(config.CursorPath)
 		if err != nil {
 			// TODO: fail here?!
 			return nil, err
 		}
 		cursor = string(data)
 	} else {
-		err = os.MkdirAll(filepath.Dir(cursorPath), 0755)
+		err = os.MkdirAll(filepath.Dir(config.CursorPath), 0755)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	// Open journal
 	jf, err := NewJournalFollower(JournalFollowerConfig{
 		Cursor: cursor,
+		Path: config.Path,
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	// Create forwarder
 	return &Forwarder{
-		jf: jf,
-		p: config.Provider,
-		publishAtLeastFreq: 5 * time.Second,
+		follower: jf,
+		forwardFlush: config.ForwardFlush,
 
-		ring: ring.NewRing(config.Provider.GetBulkSize()),
+		ring: ring.NewRing(config.RingSize),
 
 		cursorc: make(chan string),
-		cursorPath: cursorPath,
-		cursorFlushFreq: 1 * time.Second,
+		cursorPath: config.CursorPath,
+		cursorFlush: config.CursorFlush,
 
 		recvc: make(chan *sdjournal.JournalEntry, 1),
-		stopc: make(<-chan time.Time),
+		stopc: make(chan time.Time),
 		donec: make(chan bool),
-		errc: make(chan error),
+		errc:  make(chan error),
 	}, nil
 }
 
-func (f *Forwarder) forward() {
+func (f *Forwarder) forward(provider Provider) {
 	defer close(f.donec)
 
 	tduration := 10 * time.Second
@@ -94,25 +96,25 @@ func (f *Forwarder) forward() {
 	for {
 		select {
 		case <- timer.C:
-			f.publish(true)
+			f.publish(provider, true)
 		case e := <-f.recvc:
 			f.ring.Enqueue(e)
-			f.publish(false)
+			f.publish(provider, false)
 		case <-f.stopc:
 			return
 		}
 
-		if !timer.Reset(f.publishAtLeastFreq) {
-			timer = time.NewTimer(f.publishAtLeastFreq)
+		if !timer.Reset(f.forwardFlush) {
+			timer = time.NewTimer(f.forwardFlush)
 		}
 	}
 }
 
-func (f *Forwarder) publish(force bool) {
-	if f.ring.Len() == f.p.GetBulkSize() || force {
+func (f *Forwarder) publish(provider Provider, force bool) {
+	if f.ring.Len() == f.ring.Capacity() || force {
 		errorOccurred := true
 		for errorOccurred {
-			n, err := f.p.Publish(f.ring.Iterator())
+			n, err := provider.Publish(f.ring.Iterator())
 			if err != nil {
 				f.errc <- err
 				time.Sleep(1 * time.Second)
@@ -174,28 +176,13 @@ func (f *Forwarder) writeCursor(cursor string) error {
 	return nil
 }
 
-func (f *Forwarder) Run() {
-	// 1.- start following
-	go f.jf.Follow(f.recvc, f.stopc, f.donec, f.errc)
+func (f *Forwarder) Run(provider Provider) {
+	// 1.- Start following
+	go f.follower.Follow(f.recvc, f.stopc, f.donec, f.errc)
 
-	// 2.- start forwarding
-	go f.forward()
+	// 2.- Start forwarding
+	go f.forward(provider)
 
-	// 3.- persist cursor
-	go f.cursorPersist(f.cursorFlushFreq)
-
-	// wait for signal
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	for {
-		select {
-		case err := <-f.errc:
-			os.Stderr.Write([]byte(err.Error()))
-		case s := <-signalChan:
-			log.Print("Captured %v. Exiting...", s)
-			close(f.donec)
-		case <-f.donec:
-			os.Exit(0)
-		}
-	}
+	// 3.- Persist cursor
+	go f.cursorPersist(f.cursorFlush)
 }

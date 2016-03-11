@@ -1,23 +1,21 @@
 package main
 
 import (
-	"log"
-
+	flag "github.com/spf13/pflag"
 	"github.com/glerchundi/journald-forwarder/core"
 )
 
 func main() {
-	p, err := NewLogglyProvider(LogglyProviderConfig{})
-	if err != nil {
-		log.Fatalf("error creating provider: %v", err)
-	}
-
-	f, err := core.NewForwarder(core.ForwarderConfig{
-		Provider: p,
+	// main delegate
+	core.Main(core.MainConfig{
+		ProviderConfig: NewLogglyProviderConfig(),
+		Flags: func(pc core.ProviderConfig, fs *flag.FlagSet) {
+			lc := pc.(*LogglyProviderConfig)
+			fs.StringVar(&lc.Token, "loggly-token", lc.Token, "loggly token")
+			fs.StringVar(&lc.Tags, "loggly-tags", lc.Tags, "loggly tags")
+		},
+		Provider: func(pc core.ProviderConfig) (core.Provider, error) {
+			return NewLogglyProvider(pc.(*LogglyProviderConfig))
+		},
 	})
-	if err != nil {
-		log.Fatalf("error creating forwarder: %v", err)
-	}
-
-	f.Run()
 }

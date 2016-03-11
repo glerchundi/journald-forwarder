@@ -1,0 +1,10 @@
+FROM golang:1.6.0
+
+# Copy the local package files to the container's workspace.
+ADD . /go/src/github.com/glerchundi/journald-forwarder
+
+# Build the outyet command inside the container.
+# (You may fetch or manage dependencies here,
+# either manually or with a tool like "godep".)
+RUN cd /go/src/github.com/glerchundi/journald-forwarder && \
+    make BUILD=prod

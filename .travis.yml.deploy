@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+cd ${TRAVIS_BUILD_DIR:-.}
+docker login -e="." -u="${QUAY_USERNAME}" -p="${QUAY_PASSWORD}" quay.io
+
+tag="${TRAVIS_TAG:-${TRAVIS_COMMIT}}"
+for i in $(ls -d ./forwarder-*); do
+  name="journald-$(basename ${i})"
+  image="quay.io/glerchundi/${name}"
+  cp ./bin/$name-linux-amd64 journald-forwarder
+  for t in "${tag}" "latest"; do
+   docker build -t ${image}:${t} -f Dockerfile.run .
+   docker push ${image}:${t}
+  done
+done

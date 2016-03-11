@@ -1,22 +1,24 @@
-hash: 2426fa17000364ee9b8cd8248d6ec3b1dde7a01b2f9dd18a1699e40348473a0e
-updated: 2016-03-11T09:42:28.645306119+01:00
+hash: 3c29c5929f958717d97524f7b72953dd5936e5861f9140ca61514d3cda753750
+updated: 2016-03-15T14:58:12.836550796+01:00
 imports:
 - name: github.com/coreos/go-systemd
-  version: 7b2428fec40033549c68f54e26e89e7ca9a9ce31
+  version: 0cfb4b25506d69220a20cdf1c4eeda6831589e01
 - name: github.com/coreos/pkg
-  version: 66fe44ad037ccb80329115cb4db0dbe8e9beb03a
+  version: 0cfb4b25506d69220a20cdf1c4eeda6831589e01
 - name: github.com/glerchundi/go-systemd
-  version: 054da48c3fc0a963898305ea4af2c797d63997bf
+  version: ""
   subpackages:
   - /sdjournal
 - name: github.com/glerchundi/journald-forwarder
-  version: 8bd3c221d6f14d23656215921a00f0d812bcd7b9
+  version: 0cfb4b25506d69220a20cdf1c4eeda6831589e01
   subpackages:
   - /core
 - name: github.com/glerchundi/pkg
-  version: acccd38f6c2a90f5b09890e31cdcb485066e82d6
+  version: 0cfb4b25506d69220a20cdf1c4eeda6831589e01
 - name: github.com/godbus/dbus
-  version: 230e4b23db2fd81c53eaa0073f76659d4849ce51
+  version: 0cfb4b25506d69220a20cdf1c4eeda6831589e01
+- name: github.com/spf13/pflag
+  version: 7f60f83a2c81bc3c3c0d5297f61ddfa68da9d3b7
 - name: gopkg.in/yaml.v1
-  version: 9f9df34309c04878acc86042b16630b0f696e1de
+  version: 0cfb4b25506d69220a20cdf1c4eeda6831589e01
 devImports: []

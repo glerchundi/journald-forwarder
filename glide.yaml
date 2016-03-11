@@ -7,3 +7,4 @@ import:
 - package: github.com/glerchundi/journald-forwarder
   subpackages:
   - /core
+- package: github.com/spf13/pflag

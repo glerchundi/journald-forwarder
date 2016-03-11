@@ -119,7 +119,7 @@ func (r *JournalFollower) Follow(recvc chan<- *sdjournal.JournalEntry,
 			pollDone <- true
 			switch e {
 			case sdjournal.SD_JOURNAL_NOP, sdjournal.SD_JOURNAL_APPEND, sdjournal.SD_JOURNAL_INVALIDATE:
-			// TODO: need to account for any of these?
+				// TODO: need to account for any of these?
 			default:
 				log.Printf("Received unknown event: %d\n", e)
 			}

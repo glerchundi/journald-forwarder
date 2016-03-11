@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/glerchundi/journald-forwarder/core"
@@ -8,72 +12,74 @@ import (
 
 type LogglyProviderConfig struct {
 	Token string
+	Tags  string
 }
 
-func NewLogglyProvider(config LogglyProviderConfig) (*LogglyProvider, error) {
-	return &LogglyProvider{
-		client: &http.Client{},
-		endpoint: "https://logs-01.loggly.com/bulk/" + config.Token,
-	}, nil
+func (*LogglyProviderConfig) Name() string {
+	return "loggly"
 }
 
-type LogglyProvider struct {
-	client   *http.Client
-	endpoint string
-}
-
-func (lp *LogglyProvider) GetBulkSize() int {
+func (*LogglyProviderConfig) BulkSize() int {
 	return 1
 }
 
-func (lp *LogglyProvider) Publish(iterator core.JournalEntryIterator) (int, error) {
+func NewLogglyProviderConfig() *LogglyProviderConfig {
+	return &LogglyProviderConfig{}
+}
 
-	/*
-	// Propagate!
+type LogglyProvider struct {
+	client     *http.Client
+	endpoint   string
+	tags       string
+	marshaller core.JournalEntryMarshaller
+}
+
+func NewLogglyProvider(config *LogglyProviderConfig) (*LogglyProvider, error) {
+	if config.Token == "" {
+		return nil, errors.New("token not provided")
+	}
+
+	return &LogglyProvider{
+		client:     &http.Client{},
+		endpoint:   "https://logs-01.loggly.com/bulk/" + config.Token,
+		tags:       config.Tags,
+		marshaller: core.JournalEntryMarshaller{},
+	}, nil
+}
+
+func (lp *LogglyProvider) Publish(iterator core.JournalEntryIterator) (int, error) {
+	if !iterator.Next() {
+		return 0, nil
+	}
+
+	_, e := iterator.Value()
+	body := lp.marshaller.MarshalOne(e)
+
+	// propagate!
 	req, err := http.NewRequest("POST", lp.endpoint, bytes.NewBuffer(body))
 	if err != nil {
-		debug("error: %v", err)
-		return err
+		return -1, err
 	}
 
-	req.Header.Add("User-Agent", "go-loggly (version: "+Version+")")
-	req.Header.Add("Content-Type", "text/plain")
+	req.Header.Add("User-Agent", "journald-forwarder (version: 0.1.0)")
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Content-Length", string(len(body)))
 
-	tags := c.tagsList()
-	if tags != "" {
-		req.Header.Add("X-Loggly-Tag", tags)
+	if lp.tags != "" {
+		req.Header.Add("X-Loggly-Tag", lp.tags)
 	}
 
-	res, err := client.Do(req)
+	res, err := lp.client.Do(req)
 	if err != nil {
-		debug("error: %v", err)
-		return err
+		return -1, err
 	}
 
 	defer res.Body.Close()
 
-	debug("%d response", res.StatusCode)
 	if res.StatusCode >= 400 {
 		resp, _ := ioutil.ReadAll(res.Body)
-		debug("error: %s", string(resp))
+		return -1, fmt.Errorf("failed to post to loggly: %v", resp)
 	}
 
-	return err
-*/
-
-	/*
-	index := 0
-	for iterator.Next() {
-		i, e := iterator.Value()
-		os.Stdout.WriteString(e.Cursor)
-		os.Stdout.Write([]byte{'\n'})
-		index = i
-	}
-
-	time.Sleep(1 * time.Second)
-	return index, nil
-	*/
-
-	return 0, nil
+	return 1, nil
 }

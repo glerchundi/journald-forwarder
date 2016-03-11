@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+cd ${TRAVIS_BUILD_DIR:-.}
+docker build -t glerchundi/journald-forwarder-builder -f ./Dockerfile.build .
+docker run -t glerchundi/journald-forwarder-builder /bin/true
+
+mkdir -p ./bin
+for i in $(ls -d ./forwarder-*); do
+  name="journald-$(basename ${i})"
+  docker cp $(docker ps -q -n=1):/go/src/github.com/glerchundi/journald-forwarder/bin/$name-linux-amd64 ./bin/
+done
+

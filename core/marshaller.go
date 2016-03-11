@@ -8,13 +8,10 @@ import (
 	"github.com/glerchundi/go-systemd/sdjournal"
 )
 
-// bytes.Buffer extension
-
 const hex = "0123456789abcdef"
 
 type Buffer struct {
 	bytes.Buffer
-
 	scratch [64]byte
 }
 
@@ -108,8 +105,35 @@ type JournalEntryMarshaller struct {
 	buf Buffer
 }
 
-func (m *JournalEntryMarshaller) Marshal(e *sdjournal.JournalEntry) {
+func (m *JournalEntryMarshaller) MarshalOne(e *sdjournal.JournalEntry) []byte {
 	m.buf.Reset()
+	m.marshalOne(e)
+	return m.buf.Bytes()
+}
+
+func (m *JournalEntryMarshaller) MarshalAll(ea []*sdjournal.JournalEntry) []byte {
+	m.buf.Reset()
+	m.buf.WriteByte('[')
+	if ea != nil {
+		for _, e := range ea {
+			m.marshalOne(e)
+			m.buf.WriteByte(',')
+		}
+		m.buf.Rewind(1)
+	}
+	m.buf.WriteByte(']')
+	return m.buf.Bytes()
+}
+
+func (m *JournalEntryMarshaller) Bytes() []byte {
+	return m.buf.Bytes()
+}
+
+func (m *JournalEntryMarshaller) String() string {
+	return m.buf.String()
+}
+
+func (m *JournalEntryMarshaller) marshalOne(e *sdjournal.JournalEntry) {
 	m.buf.WriteString(`{"__CURSOR":`)
 	m.buf.WriteJsonString(e.Cursor)
 	m.buf.WriteString(`,"__REALTIME_TIMESTAMP":`)
@@ -127,8 +151,4 @@ func (m *JournalEntryMarshaller) Marshal(e *sdjournal.JournalEntry) {
 		m.buf.Rewind(1)
 	}
 	m.buf.WriteByte('}')
-}
-
-func (m *JournalEntryMarshaller) String() string {
-	return m.buf.String()
 }

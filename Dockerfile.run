@@ -1,0 +1,3 @@
+FROM scratch
+COPY ./journald-forwarder /usr/bin/journald-forwarder
+ENTRYPOINT [ "/usr/bin/journald-forwarder" ]
