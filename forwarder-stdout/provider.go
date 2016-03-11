@@ -17,7 +17,7 @@ type StdoutProvider struct {
 }
 
 func (sp *StdoutProvider) GetBulkSize() int {
-	return 10
+	return 1
 }
 
 func (sp *StdoutProvider) Publish(iterator core.JournalEntryIterator) (int, error) {
@@ -30,6 +30,5 @@ func (sp *StdoutProvider) Publish(iterator core.JournalEntryIterator) (int, erro
 		index = i
 	}
 
-	//time.Sleep(1 * time.Second)
 	return index, nil
 }
