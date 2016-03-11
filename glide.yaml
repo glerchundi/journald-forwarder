@@ -1,0 +1,9 @@
+package: .
+import:
+- package: github.com/glerchundi/go-systemd
+  version: all-prs-merged
+  subpackages:
+  - /sdjournal
+- package: github.com/glerchundi/journald-forwarder
+  subpackages:
+  - /core

@@ -1,7 +1,23 @@
 package main
 
-import "fmt"
+import (
+	"log"
+
+	"github.com/glerchundi/journald-forwarder/core"
+)
 
 func main() {
-	fmt.Printf("Hello, world.\n")
+	p, err := NewLogglyProvider(LogglyProviderConfig{})
+	if err != nil {
+		log.Fatalf("error creating provider: %v", err)
+	}
+
+	f, err := core.NewForwarder(core.ForwarderConfig{
+		Provider: p,
+	})
+	if err != nil {
+		log.Fatalf("error creating forwarder: %v", err)
+	}
+
+	f.Run()
 }

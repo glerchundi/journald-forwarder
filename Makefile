@@ -6,12 +6,12 @@
 #PREFIX = quay.io/glerchundi
 NAME = journald
 
-FORWARDERS := $(wildcard forwarder-*)
+forwarders := $(wildcard forwarder-*)
 
-all: $(FORWARDERS)
+all: $(forwarders)
 
 ifeq ($(BUILD),static)
-$(FORWARDERS):
+$(forwarders):
 	@echo "Building static $(NAME)-$@..."
 	ROOTPATH=$(shell pwd -P); mkdir -p $$ROOTPATH/bin; \
 	GO15VENDOREXPERIMENT=1 \
@@ -21,7 +21,7 @@ $(FORWARDERS):
 		-o $$ROOTPATH/bin/$(NAME)-$@-linux-amd64 \
 		./$@
 else
-$(FORWARDERS):
+$(forwarders):
 	@echo "Building $(NAME)-$@..."
 	ROOTPATH=$(shell pwd -P); mkdir -p $$ROOTPATH/bin; \
 	GO15VENDOREXPERIMENT=1 go build -o $$ROOTPATH/bin/$(NAME)-$@ ./$@
@@ -29,7 +29,8 @@ endif
 
 test:
 	@echo "Running tests..."
-	GO15VENDOREXPERIMENT=1 go test
+	@GO15VENDOREXPERIMENT=1 go test ./core
+	@$(foreach forwarder,$(forwarders),GO15VENDOREXPERIMENT=1 go test ./$(forwarder);)
 
 #container: static
 #	docker build -t $(PREFIX)/$(NAME):$(VERSION) .
@@ -40,4 +41,4 @@ test:
 clean:
 	rm -f bin/$(NAME)*
 
-.PHONY: all $(FORWARDERS) test clean
+.PHONY: all $(forwarders) test clean
