@@ -12,7 +12,7 @@ all: $(forwarders)
 
 ifeq ($(BUILD),prod)
 $(forwarders):
-	@echo "Building static $(NAME)-$@..."
+	@echo "Building production $(NAME)-$@..."
 	ROOTPATH=$(shell pwd -P); mkdir -p $$ROOTPATH/bin; \
 	GO15VENDOREXPERIMENT=1 \
 	GOOS=linux GOARCH=amd64 \

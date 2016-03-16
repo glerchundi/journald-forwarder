@@ -27,7 +27,7 @@ func Main(mainConfig MainConfig) {
 
 	// Define flag sets
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	fs.StringVar(&fc.Path, "journal-path", fc.Path, "journald path.")
+	fs.StringVar(&fc.Path, "path", fc.Path, "journal path.")
 	fs.StringVar(&fc.CursorPath, "cursor-path", fc.CursorPath, "cursor path.")
 	fs.DurationVar(&fc.CursorFlush, "cursor-flush", fc.CursorFlush, "cursor flush frequency.")
 	fs.DurationVar(&fc.ForwardFlush, "forward-flush", fc.ForwardFlush, "forward flush frequency.")
