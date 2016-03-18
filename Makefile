@@ -1,10 +1,10 @@
-# Makefile for the Docker image quay.io/glerchundi/journald-forwarder
 # MAINTAINER: Gorka Lerchundi Osa <glertxundi@gmail.com>
-# If you update this image please bump the tag value before pushing.
 
-#VERSION = 0.2.0
-#PREFIX = quay.io/glerchundi
-NAME = journald
+NAME       = journald
+VERSION    = 0.1.0
+PACKAGE    = github.com/glerchundi/journald-forwarder
+GIT_REV    = `git rev-parse --verify HEAD`
+BUILD_DATE = `date -u +"%Y-%m-%dT%H:%M:%SZ"`
 
 forwarders := $(wildcard forwarder-*)
 
@@ -19,6 +19,11 @@ $(forwarders):
 	CGO_ENABLED=1 CGO_CPPFLAGS="-I $$ROOTPATH/core"  \
 	go build \
 		-a -x -tags netgo -installsuffix cgo -installsuffix netgo \
+		-ldflags " \
+		  -X $(PACKAGE)/core.Version=$(VERSION) \
+		  -X $(PACKAGE)/core.GitRev=$(GIT_REV) \
+		  -X $(PACKAGE)/core.BuildDate=$(BUILD_DATE) \
+		" \
 		-o $$ROOTPATH/bin/$(NAME)-$@-linux-amd64 \
 		./$@
 else
@@ -29,6 +34,11 @@ $(forwarders):
 	CGO_ENABLED=1 CGO_CPPFLAGS="-I $$ROOTPATH/core"  \
 	go build \
 		-x \
+		-ldflags " \
+		  -X $(PACKAGE)/core.Version=$(VERSION) \
+		  -X $(PACKAGE)/core.GitRev=$(GIT_REV) \
+		  -X $(PACKAGE)/core.BuildDate=$(BUILD_DATE) \
+		" \
 		-o $$ROOTPATH/bin/$(NAME)-$@ \
 		./$@
 endif
@@ -37,12 +47,6 @@ test:
 	@echo "Running tests..."
 	@GO15VENDOREXPERIMENT=1 go test ./core
 	@$(foreach forwarder,$(forwarders),GO15VENDOREXPERIMENT=1 go test ./$(forwarder);)
-
-#container: static
-#	docker build -t $(PREFIX)/$(NAME):$(VERSION) .
-
-#push: container
-#	docker push $(PREFIX)/$(NAME):$(VERSION)
 
 clean:
 	rm -f bin/$(NAME)*

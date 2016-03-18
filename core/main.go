@@ -47,6 +47,13 @@ func Main(mainConfig MainConfig) {
 		},
 	)
 
+	// Define usage
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "%s (version=%s, gitrev=%s, built=%s)\n", os.Args[0], Version, GitRev, BuildDate)
+		fmt.Fprintf(os.Stderr, "Usage:\n")
+		fs.PrintDefaults()
+	}
+
 	// Parse
 	fs.Parse(os.Args[1:])
 
